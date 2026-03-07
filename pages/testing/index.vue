@@ -34,6 +34,22 @@
             <div class="text-slate-500">→</div>
           </div>
         </NuxtLink>
+
+        <NuxtLink
+          to="/testing/passenger-offers"
+          class="rounded-2xl border border-slate-800 bg-slate-900/70 hover:bg-slate-800/70 transition shadow-lg px-6 py-6"
+        >
+          <div class="flex items-start gap-4">
+            <div class="text-3xl">👤</div>
+            <div class="flex-1">
+              <div class="text-lg font-semibold text-slate-100">Passenger Driver Offers</div>
+              <div class="mt-1 text-sm text-slate-400">
+                Simular ofertas de conductores para el flujo SearchingForDrivers.
+              </div>
+            </div>
+            <div class="text-slate-500">→</div>
+          </div>
+        </NuxtLink>
       </div>
     </main>
   </div>
