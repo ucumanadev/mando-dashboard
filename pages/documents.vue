@@ -17,6 +17,7 @@ type DriverDocDto = {
   documentType?: string | null;
   url: string;
   uploadedAt?: string | null;
+  status?: string | null;
 };
 
 type DriverDocsResponse = {
@@ -39,6 +40,16 @@ const selected = ref<SearchItem | null>(null);
 const docsLoading = ref(false);
 const docsErr = ref<string | null>(null);
 const docs = ref<DriverDocsResponse | null>(null);
+const docStatusDraft = ref<Record<string, string>>({});
+const statusSavingId = ref<string | null>(null);
+const docStatusErr = ref<Record<string, string>>({});
+
+const STATUS_OPTIONS = ["pending", "approved", "rejected", "resend"] as const;
+
+function normalizeStatus(raw?: string | null) {
+  const value = (raw ?? "").trim().toLowerCase();
+  return STATUS_OPTIONS.includes(value as (typeof STATUS_OPTIONS)[number]) ? value : "pending";
+}
 
 const canSearch = computed(() => q.value.trim().length >= 2);
 
@@ -101,6 +112,8 @@ const loadDocs = async (item: SearchItem) => {
     selected.value = item;
     docs.value = null;
     docsErr.value = null;
+    docStatusDraft.value = {};
+    docStatusErr.value = {};
     docsLoading.value = true;
 
     const res = await fetch(`/api/drivers/${item.id}/documents`, { cache: "no-store" });
@@ -113,10 +126,51 @@ const loadDocs = async (item: SearchItem) => {
     }
 
     docs.value = data as DriverDocsResponse;
+    const nextDraft: Record<string, string> = {};
+    for (const d of docs.value.documents ?? []) {
+      nextDraft[d.id] = normalizeStatus(d.status);
+    }
+    docStatusDraft.value = nextDraft;
   } catch (err: unknown) {
     docsErr.value = (err as Error).message || "Failed to load documents";
   } finally {
     docsLoading.value = false;
+  }
+};
+
+const updateDocumentStatus = async (doc: DriverDocDto) => {
+  if (!selected.value || statusSavingId.value) return;
+
+  const status = normalizeStatus(docStatusDraft.value[doc.id]);
+  try {
+    statusSavingId.value = doc.id;
+    docStatusErr.value[doc.id] = "";
+
+    const res = await fetch(
+      `/api/drivers/${encodeURIComponent(selected.value.id)}/documents/${encodeURIComponent(doc.id)}/status`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      }
+    );
+
+    const text = await res.text();
+    const data = text.trim() ? JSON.parse(text) : {};
+    if (!res.ok) {
+      docStatusErr.value[doc.id] = data?.detail || data?.error || "Failed to update status";
+      return;
+    }
+
+    docStatusDraft.value[doc.id] = status;
+    if (docs.value?.documents) {
+      const found = docs.value.documents.find((d) => d.id === doc.id);
+      if (found) found.status = status;
+    }
+  } catch (err: unknown) {
+    docStatusErr.value[doc.id] = (err as Error).message || "Failed to update status";
+  } finally {
+    statusSavingId.value = null;
   }
 };
 </script>
@@ -270,11 +324,35 @@ const loadDocs = async (item: SearchItem) => {
 
               <div class="grid grid-cols-1 gap-3">
                 <div v-for="d in docs.documents ?? []" :key="d.id" class="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-                  <div class="text-[11px] text-slate-400">
-                    Doc: {{ d.documentType ?? "document" }}
-                    {{ d.uploadedAt ? ` - ${new Date(d.uploadedAt).toLocaleString()}` : "" }}
+                  <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div class="text-[11px] text-slate-400">
+                      Doc: {{ d.documentType ?? "document" }}
+                      {{ d.uploadedAt ? ` - ${new Date(d.uploadedAt).toLocaleString()}` : "" }}
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <select
+                        v-model="docStatusDraft[d.id]"
+                        class="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-[12px] text-slate-100"
+                      >
+                        <option v-for="s in STATUS_OPTIONS" :key="s" :value="s">{{ s }}</option>
+                      </select>
+                      <button
+                        type="button"
+                        class="rounded bg-emerald-500 hover:bg-emerald-400 px-2 py-1 text-[11px] font-semibold text-slate-950 disabled:opacity-50"
+                        :disabled="statusSavingId === d.id"
+                        @click="updateDocumentStatus(d)"
+                      >
+                        {{ statusSavingId === d.id ? "Saving..." : "Save" }}
+                      </button>
+                    </div>
                   </div>
                   <div class="mt-1 font-mono text-[10px] text-slate-300 break-all">{{ normalizeSecurePath(d.url) }}</div>
+                  <div class="mt-1 text-[11px] text-slate-300">
+                    Current status: <span class="font-semibold">{{ normalizeStatus(d.status) }}</span>
+                  </div>
+                  <div v-if="docStatusErr[d.id]" class="mt-2 rounded border border-red-500/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-200">
+                    {{ docStatusErr[d.id] }}
+                  </div>
                   <div class="mt-3">
                     <img
                       v-if="isImageExt(extOf(normalizeSecurePath(d.url) || ''))"
