@@ -1,7 +1,7 @@
-import { getOpsEnv } from "~~/server/utils/opsEnv";
+import { getOpsEnv, getOpsHeaders } from "~~/server/utils/opsEnv";
 
 export default defineEventHandler(async (event) => {
-  const { baseUrl, adminKey } = getOpsEnv(event);
+  const { baseUrl } = getOpsEnv(event);
   const query = getQuery(event);
 
   const status = typeof query.status === "string" ? query.status : "Pending";
@@ -13,10 +13,7 @@ export default defineEventHandler(async (event) => {
 
   const res = await fetch(url.toString(), {
     method: "GET",
-    headers: {
-      "X-Admin-Key": adminKey,
-      Accept: "application/json"
-    },
+    headers: getOpsHeaders(event, { accept: "application/json" }),
     cache: "no-store"
   });
 

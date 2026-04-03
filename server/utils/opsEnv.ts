@@ -1,4 +1,6 @@
 import type { H3Event } from "h3";
+import { getCookie, getHeader } from "h3";
+import { ADMIN_ACCESS_TOKEN_COOKIE } from "~/constants/auth";
 
 export function getOpsEnv(event: H3Event) {
   const config = useRuntimeConfig(event);
@@ -12,12 +14,6 @@ export function getOpsEnv(event: H3Event) {
     process.env.NEXT_PUBLIC_OPS_API_BASE_URL ||
     "";
 
-  const adminKey =
-    config.motoAdminKey ||
-    process.env.MOTO_ADMIN_KEY ||
-    process.env.OPS_ADMIN_KEY ||
-    "";
-
   if (!baseUrl) {
     throw createError({
       statusCode: 500,
@@ -25,15 +21,41 @@ export function getOpsEnv(event: H3Event) {
     });
   }
 
-  if (!adminKey) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: "Missing env MOTO_ADMIN_KEY (or OPS_ADMIN_KEY)"
-    });
+  return {
+    baseUrl: baseUrl.replace(/\/$/, "")
+  };
+}
+
+export function getOpsAccessToken(event: H3Event): string | null {
+  const authHeader = getHeader(event, "authorization");
+  if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
+    const headerToken = authHeader.slice("bearer ".length).trim();
+    if (headerToken) return headerToken;
   }
 
-  return {
-    baseUrl: baseUrl.replace(/\/$/, ""),
-    adminKey
-  };
+  const cookieToken = getCookie(event, ADMIN_ACCESS_TOKEN_COOKIE);
+  return cookieToken?.trim() ? cookieToken : null;
+}
+
+export function getOpsHeaders(
+  event: H3Event,
+  options?: { json?: boolean; accept?: string }
+) {
+  getOpsEnv(event);
+  const accessToken = getOpsAccessToken(event);
+  const headers: Record<string, string> = {};
+
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  if (options?.json) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (options?.accept) {
+    headers.Accept = options.accept;
+  }
+
+  return headers;
 }

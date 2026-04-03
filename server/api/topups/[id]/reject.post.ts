@@ -1,8 +1,8 @@
-import { getOpsEnv } from "~~/server/utils/opsEnv";
+import { getOpsEnv, getOpsHeaders } from "~~/server/utils/opsEnv";
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
-  const { baseUrl, adminKey } = getOpsEnv(event);
+  const { baseUrl } = getOpsEnv(event);
 
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Missing topup id" });
@@ -12,11 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const res = await fetch(url, {
     method: "POST",
-    headers: {
-      "X-Admin-Key": adminKey,
-      "Content-Type": "application/json",
-      Accept: "application/json"
-    },
+    headers: getOpsHeaders(event, { json: true, accept: "application/json" }),
     body: JSON.stringify({ note: "rejected via ops ui" }),
     cache: "no-store"
   });

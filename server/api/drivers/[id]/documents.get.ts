@@ -1,7 +1,7 @@
-import { getOpsEnv } from "~~/server/utils/opsEnv";
+import { getOpsEnv, getOpsHeaders } from "~~/server/utils/opsEnv";
 
 export default defineEventHandler(async (event) => {
-  const { baseUrl, adminKey } = getOpsEnv(event);
+  const { baseUrl } = getOpsEnv(event);
   const id = getRouterParam(event, "id");
 
   if (!id) {
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const url = `${baseUrl}/api/admin/users/${encodeURIComponent(id)}/documents`;
 
   const res = await fetch(url, {
-    headers: { "X-Admin-Key": adminKey },
+    headers: getOpsHeaders(event),
     cache: "no-store"
   });
 

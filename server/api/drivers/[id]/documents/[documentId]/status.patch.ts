@@ -1,11 +1,11 @@
-import { getOpsEnv } from "~~/server/utils/opsEnv";
+import { getOpsEnv, getOpsHeaders } from "~~/server/utils/opsEnv";
 
 type Body = {
   status?: string;
 };
 
 export default defineEventHandler(async (event) => {
-  const { baseUrl, adminKey } = getOpsEnv(event);
+  const { baseUrl } = getOpsEnv(event);
   const id = getRouterParam(event, "id");
   const documentId = getRouterParam(event, "documentId");
   const body = await readBody<Body>(event);
@@ -25,11 +25,7 @@ export default defineEventHandler(async (event) => {
 
   const res = await fetch(url, {
     method: "PATCH",
-    headers: {
-      "X-Admin-Key": adminKey,
-      "Content-Type": "application/json",
-      Accept: "application/json"
-    },
+    headers: getOpsHeaders(event, { json: true, accept: "application/json" }),
     body: JSON.stringify({ status }),
     cache: "no-store"
   });

@@ -28,9 +28,17 @@ Copy `.env.example` to `.env` and set values.
 Important values:
 
 - `MOTO_API_BASE_URL` or `OPS_API_BASE_URL`
-- `MOTO_ADMIN_KEY` or `OPS_ADMIN_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
 - `LOG_ROOT`
 - `IMG_ROOT`
+
+## Auth Flow
+
+- Admin users sign in at `/login` with Supabase email/password.
+- A Supabase access token is synced to a cookie and used by Nuxt server API routes.
+- Nuxt server middleware requires a valid Supabase session for all `/api/*` calls.
+- Backend requests now forward `Authorization: Bearer <token>` only.
 
 ## Run
 

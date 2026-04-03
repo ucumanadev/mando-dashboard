@@ -1,4 +1,4 @@
-import { getOpsEnv } from "~~/server/utils/opsEnv";
+import { getOpsEnv, getOpsHeaders } from "~~/server/utils/opsEnv";
 
 type CreateRideRequestsBody = {
   count?: number;
@@ -19,18 +19,14 @@ type CreateRideRequestsBody = {
 };
 
 export default defineEventHandler(async (event) => {
-  const { baseUrl, adminKey } = getOpsEnv(event);
+  const { baseUrl } = getOpsEnv(event);
   const body = await readBody<CreateRideRequestsBody>(event);
 
   const url = `${baseUrl}/api/dev/testing/ride-requests/create`;
 
   const res = await fetch(url, {
     method: "POST",
-    headers: {
-      "X-Admin-Key": adminKey,
-      "Content-Type": "application/json",
-      Accept: "application/json"
-    },
+    headers: getOpsHeaders(event, { json: true, accept: "application/json" }),
     body: JSON.stringify(body ?? {}),
     cache: "no-store"
   });

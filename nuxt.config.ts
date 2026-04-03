@@ -5,13 +5,16 @@ export default defineNuxtConfig({
   runtimeConfig: {
     motoApiBaseUrl:
       process.env.MOTO_API_BASE_URL ?? process.env.OPS_API_BASE_URL ?? "",
-    motoAdminKey: process.env.MOTO_ADMIN_KEY ?? process.env.OPS_ADMIN_KEY ?? "",
     logRoot:
       process.env.LOG_ROOT ??
       "/Users/armandoabon/Library/Application Support/MotoNegocia/logs",
     imgRoot:
       process.env.IMG_ROOT ??
-      "/Users/armandoabon/Library/Application Support/MotoNegocia"
+      "/Users/armandoabon/Library/Application Support/MotoNegocia",
+    public: {
+      supabaseUrl: process.env.SUPABASE_URL ?? "",
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? ""
+    }
   },
   typescript: {
     strict: true,

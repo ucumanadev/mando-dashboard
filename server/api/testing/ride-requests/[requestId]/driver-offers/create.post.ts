@@ -1,4 +1,4 @@
-import { getOpsEnv } from "~~/server/utils/opsEnv";
+import { getOpsEnv, getOpsHeaders } from "~~/server/utils/opsEnv";
 
 type CreateDriverOffersBody = {
   count?: number;
@@ -10,7 +10,7 @@ type CreateDriverOffersBody = {
 };
 
 export default defineEventHandler(async (event) => {
-  const { baseUrl, adminKey } = getOpsEnv(event);
+  const { baseUrl } = getOpsEnv(event);
   const requestId = getRouterParam(event, "requestId");
 
   if (!requestId) {
@@ -22,11 +22,7 @@ export default defineEventHandler(async (event) => {
 
   const res = await fetch(url, {
     method: "POST",
-    headers: {
-      "X-Admin-Key": adminKey,
-      "Content-Type": "application/json",
-      Accept: "application/json"
-    },
+    headers: getOpsHeaders(event, { json: true, accept: "application/json" }),
     body: JSON.stringify(body ?? {}),
     cache: "no-store"
   });

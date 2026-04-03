@@ -1,7 +1,7 @@
-import { getOpsEnv } from "~~/server/utils/opsEnv";
+import { getOpsEnv, getOpsHeaders } from "~~/server/utils/opsEnv";
 
 export default defineEventHandler(async (event) => {
-  const { baseUrl, adminKey } = getOpsEnv(event);
+  const { baseUrl } = getOpsEnv(event);
   const query = getQuery(event);
   const path = typeof query.path === "string" ? query.path : "";
 
@@ -14,10 +14,7 @@ export default defineEventHandler(async (event) => {
 
   const res = await fetch(url, {
     method: "GET",
-    headers: {
-      "X-Admin-Key": adminKey,
-      Accept: "image/*,*/*"
-    },
+    headers: getOpsHeaders(event, { accept: "image/*,*/*" }),
     cache: "no-store"
   });
 

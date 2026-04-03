@@ -1,4 +1,4 @@
-import { getOpsEnv } from "~~/server/utils/opsEnv";
+import { getOpsEnv, getOpsHeaders } from "~~/server/utils/opsEnv";
 
 function extractItems(data: unknown): unknown[] | null {
   if (Array.isArray(data)) return data;
@@ -24,7 +24,7 @@ function extractItems(data: unknown): unknown[] | null {
 
 export default defineEventHandler(async (event) => {
   try {
-    const { baseUrl, adminKey } = getOpsEnv(event);
+    const { baseUrl } = getOpsEnv(event);
     const query = getQuery(event);
 
     const q = typeof query.q === "string" ? query.q.trim() : "";
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
 
     for (const url of urls) {
       const res = await fetch(url, {
-        headers: { "X-Admin-Key": adminKey },
+        headers: getOpsHeaders(event),
         cache: "no-store"
       });
 
