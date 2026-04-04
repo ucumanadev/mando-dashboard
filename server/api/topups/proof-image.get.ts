@@ -10,9 +10,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const sanitizedPath = path.replace(/^\/+/, "");
-  const url = `${baseUrl.replace(/\/+$/, "")}/${sanitizedPath}`;
+  const url = new URL(`${baseUrl.replace(/\/+$/, "")}/api/wallet/admin/topups/proof-file`);
+  url.searchParams.set("path", sanitizedPath);
 
-  const res = await fetch(url, {
+  const res = await fetch(url.toString(), {
     method: "GET",
     headers: getOpsHeaders(event, { accept: "image/*,*/*" }),
     cache: "no-store"
