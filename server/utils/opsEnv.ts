@@ -9,15 +9,13 @@ export function getOpsEnv(event: H3Event) {
   const baseUrl =
     config.motoApiBaseUrl ||
     process.env.MOTO_API_BASE_URL ||
-    process.env.OPS_API_BASE_URL ||
     process.env.NEXT_PUBLIC_MOTO_API_BASE_URL ||
-    process.env.NEXT_PUBLIC_OPS_API_BASE_URL ||
     "";
 
   if (!baseUrl) {
     throw createError({
       statusCode: 500,
-      statusMessage: "Missing env MOTO_API_BASE_URL (or OPS_API_BASE_URL)"
+      statusMessage: "Missing env MOTO_API_BASE_URL"
     });
   }
 

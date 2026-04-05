@@ -27,7 +27,7 @@ Copy `.env.example` to `.env` and set values.
 
 Important values:
 
-- `MOTO_API_BASE_URL` or `OPS_API_BASE_URL`
+- `MOTO_API_BASE_URL`
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `LOG_ROOT`

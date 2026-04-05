@@ -3,8 +3,7 @@ export default defineNuxtConfig({
   modules: ["@nuxtjs/tailwindcss"],
   css: ["~/assets/css/main.css"],
   runtimeConfig: {
-    motoApiBaseUrl:
-      process.env.MOTO_API_BASE_URL ?? process.env.OPS_API_BASE_URL ?? "",
+    motoApiBaseUrl: process.env.MOTO_API_BASE_URL ?? "",
     logRoot:
       process.env.LOG_ROOT ??
       "/Users/armandoabon/Library/Application Support/MotoNegocia/logs",
