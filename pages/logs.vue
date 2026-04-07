@@ -1,5 +1,5 @@
 <script setup lang="ts">
-type LogKind = "app" | "error" | "error-full" | "audit" | "signalr" | "signalr-error";
+type LogKind = "app" | "error";
 type MinLevel = "Debug" | "Information" | "Warning" | "Error" | "Fatal";
 
 type LogEvent = {
@@ -17,16 +17,6 @@ type ApiResponse = {
   detail?: string;
 };
 
-type SignalRSession = {
-  connectionKey: string;
-  connectionProp: "TransportConnectionId" | "ConnectionId";
-  firstTimestamp: string;
-  lastTimestamp: string;
-  eventCount: number;
-  userId?: string;
-  sessionId?: string;
-};
-
 const LEVEL_ORDER: Record<string, number> = {
   Verbose: 0,
   Debug: 1,
@@ -38,11 +28,7 @@ const LEVEL_ORDER: Record<string, number> = {
 
 const FILE_OPTIONS: Array<{ value: LogKind; label: string }> = [
   { value: "app", label: "App (info+)" },
-  { value: "error", label: "Error (warning+)" },
-  { value: "error-full", label: "Error Full (errors only)" },
-  { value: "audit", label: "Audit" },
-  { value: "signalr", label: "SignalR" },
-  { value: "signalr-error", label: "SignalR Errors" }
+  { value: "error", label: "Errors" }
 ];
 
 const MIN_LEVEL_OPTIONS: MinLevel[] = ["Debug", "Information", "Warning", "Error", "Fatal"];
@@ -166,62 +152,6 @@ const formatTimestamp = (iso: string) => {
   return d.toLocaleString();
 };
 
-const isSignalRFile = computed(() => (file.value === "signalr" || file.value === "signalr-error") && !correlation.value);
-
-const signalRSessions = computed<SignalRSession[]>(() => {
-  if (!isSignalRFile.value || logs.value.length === 0) return [];
-
-  const sessionsMap = new Map<string, SignalRSession>();
-
-  for (const log of logs.value) {
-    const transportId = getProp(log, "TransportConnectionId");
-    const connectionId = getProp(log, "ConnectionId");
-
-    const connectionKey = transportId || connectionId;
-    if (!connectionKey) continue;
-
-    const connectionProp: "TransportConnectionId" | "ConnectionId" = transportId
-      ? "TransportConnectionId"
-      : "ConnectionId";
-
-    const userId = getProp(log, "UserId") || getProp(log, "userId") || getProp(log, "user_id") || undefined;
-    const sessionId = getProp(log, "SessionId") || getProp(log, "session_id") || undefined;
-
-    const existing = sessionsMap.get(connectionKey);
-
-    if (!existing) {
-      sessionsMap.set(connectionKey, {
-        connectionKey,
-        connectionProp,
-        firstTimestamp: log.timestamp,
-        lastTimestamp: log.timestamp,
-        eventCount: 1,
-        userId,
-        sessionId
-      });
-    } else {
-      if (log.timestamp < existing.firstTimestamp) existing.firstTimestamp = log.timestamp;
-      if (log.timestamp > existing.lastTimestamp) existing.lastTimestamp = log.timestamp;
-      existing.eventCount += 1;
-      if (!existing.sessionId && sessionId) existing.sessionId = sessionId;
-    }
-  }
-
-  return [...sessionsMap.values()].sort((a, b) => (a.lastTimestamp < b.lastTimestamp ? 1 : -1));
-});
-
-const handleSessionClick = (session: SignalRSession) => {
-  if (session.sessionId) {
-    loadCorrelation("SessionId", session.sessionId);
-    return;
-  }
-
-  propertyFilter.value = {
-    key: session.connectionProp,
-    value: session.connectionKey
-  };
-};
-
 watch([file, limit, date], () => {
   if (correlation.value) return;
   loadLogs(file.value, limit.value);
@@ -284,41 +214,6 @@ watch([file, limit, date], () => {
         </div>
       </div>
     </section>
-
-    <section v-if="isSignalRFile && signalRSessions.length > 0" class="border-b border-slate-800 bg-slate-900/70">
-      <div class="mx-auto max-w-6xl px-4 py-2">
-        <div class="flex items-center justify-between mb-1">
-          <span class="text-[11px] text-slate-400">SignalR sessions ({{ signalRSessions.length }}) - grouped by connection</span>
-          <button
-            v-if="propertyFilter"
-            class="text-[11px] text-emerald-300 hover:text-emerald-200"
-            @click="propertyFilter = null"
-          >
-            Clear connection filter
-          </button>
-        </div>
-
-        <div class="flex gap-2 overflow-x-auto pb-2">
-          <button
-            v-for="session in signalRSessions"
-            :key="session.connectionKey"
-            type="button"
-            class="min-w-[220px] text-left rounded-lg border px-3 py-2 text-[11px] transition"
-            :class="propertyFilter && propertyFilter.key === session.connectionProp && propertyFilter.value === session.connectionKey
-              ? 'border-emerald-400 bg-emerald-500/10'
-              : 'border-slate-700 bg-slate-900/80 hover:border-emerald-500/60 hover:bg-slate-800/80'"
-            @click="handleSessionClick(session)"
-          >
-            <div class="font-mono text-[10px] text-emerald-300 truncate">{{ session.connectionProp }}: {{ session.connectionKey }}</div>
-            <div v-if="session.userId" class="mt-0.5 text-[10px] text-slate-300 truncate">userId: <span class="font-mono">{{ session.userId }}</span></div>
-            <div v-if="session.sessionId" class="mt-0.5 text-[10px] text-slate-300 truncate">session: <span class="font-mono">{{ session.sessionId }}</span></div>
-            <div class="mt-1 text-[10px] text-slate-400">{{ formatTimestamp(session.firstTimestamp) }} -> {{ formatTimestamp(session.lastTimestamp) }}</div>
-            <div class="mt-0.5 text-[10px] text-slate-400">Events: <span class="font-semibold text-slate-100">{{ session.eventCount }}</span></div>
-          </button>
-        </div>
-      </div>
-    </section>
-
     <main class="flex-1 mx-auto max-w-6xl w-full px-4 py-4 relative">
       <div v-if="error" class="mb-3 rounded border border-red-500/60 bg-red-500/10 px-3 py-2 text-sm text-red-200">{{ error }}</div>
 

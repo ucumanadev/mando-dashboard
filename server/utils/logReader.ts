@@ -2,21 +2,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { H3Event } from "h3";
 
-export type LogKind =
-  | "app"
-  | "error"
-  | "error-full"
-  | "audit"
-  | "signalr"
-  | "signalr-error";
+export type LogKind = "app" | "error";
 
-const FILE_MAP: Record<LogKind, string> = {
-  app: "app-.log",
-  error: "error-.log",
-  "error-full": "error-full-.log",
-  audit: "audit-.log",
-  signalr: "signalr-.log",
-  "signalr-error": "signalr-error-.log"
+const FILE_MAP: Record<LogKind, string[]> = {
+  app: ["app-.log"],
+  // Staging/production use "errors-.log" while local dev may use "error-.log".
+  error: ["errors-.log", "error-.log"]
 };
 
 export type LogEvent = {
@@ -59,17 +50,23 @@ export async function readLogFile(
   limit = 200,
   date?: string
 ): Promise<LogEvent[]> {
-  const pattern = FILE_MAP[kind];
-  const fileName = getFileNameForDate(pattern, date);
-  const fullPath = path.join(getLogRoot(event), fileName);
+  const patterns = FILE_MAP[kind] ?? [];
+  const candidates = patterns.map((pattern) =>
+    path.join(getLogRoot(event), getFileNameForDate(pattern, date))
+  );
 
-  let text: string;
-  try {
-    text = await fs.readFile(fullPath, "utf8");
-  } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw err;
+  let text: string | null = null;
+  for (const fullPath of candidates) {
+    try {
+      text = await fs.readFile(fullPath, "utf8");
+      break;
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") continue;
+      throw err;
+    }
   }
+
+  if (!text) return [];
 
   const lines = text
     .split("\n")

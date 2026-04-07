@@ -1,14 +1,7 @@
 import { readLogFile } from "~~/server/utils/logReader";
 import type { LogKind } from "~/server/utils/logReader";
 
-const ALLOWED: LogKind[] = [
-  "app",
-  "error",
-  "error-full",
-  "audit",
-  "signalr",
-  "signalr-error"
-];
+const ALLOWED: LogKind[] = ["app", "error"];
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
